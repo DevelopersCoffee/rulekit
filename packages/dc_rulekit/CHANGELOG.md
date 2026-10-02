@@ -1,13 +1,11 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+## [0.2.0] - 2026-10-02
+
+- Rule JSON v2: `conditions` tree + `events` with `type`/`params`; v0.1 `when`/`then` still parses.
+- `propose(rule, registry)` with optional plugin `paramsSchema` validation.
+- See repository root [CHANGELOG.md](../../CHANGELOG.md).
 
 ## [0.1.0] - 2026-10-02
 
-### Added
-
-- Rust crate **`dc_rulekit`**: rule model, plugin registry, in-memory/file stores, proposal workflow, engine with dry-run, audit hook.
-- Dart package **`dc_rulekit`**: pure-Dart mirror of core semantics for Flutter hosts.
-- Toy plugins in **`dc_rulekit_demo_plugins`** (`demo.when.*`, `demo.then.*`).
-- ADR 0001 (agnostic core vs host plugins).
-- Unit tests for Rust and Dart.
+- Initial Dart mirror of dc_rulekit core.

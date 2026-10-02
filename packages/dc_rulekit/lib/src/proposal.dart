@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'error.dart';
 import 'model.dart';
+import 'plugin.dart';
 import 'store.dart';
 
 class ProposalStore {
@@ -11,8 +12,10 @@ class ProposalStore {
   final String? filePath;
   final _proposals = <String, RuleProposal>{};
 
-  RuleProposal propose(Rule rule) {
+  RuleProposal propose(Rule rule, PluginRegistry registry) {
     rule.validateSchema();
+    registry.validateRulePlugins(rule);
+    registry.validateRuleParams(rule);
     final proposal = RuleProposal(
       proposalId: _uuid(),
       status: ProposalStatus.proposed,

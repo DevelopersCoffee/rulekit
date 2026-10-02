@@ -1,0 +1,33 @@
+{
+  "schema_version": 2,
+  "id": "demo.app/nested",
+  "title": "Nested any/all",
+  "source": "static",
+  "conditions": {
+    "all": [
+      {
+        "any": [
+          {
+            "id": "a",
+            "plugin": "demo.when.always",
+            "params": {}
+          },
+          {
+            "not": {
+              "id": "b",
+              "plugin": "demo.when.never",
+              "params": {}
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "events": [
+    {
+      "id": "inc",
+      "type": "demo.then.increment_counter",
+      "params": { "key": "counter", "by": 1 }
+    }
+  ]
+}

@@ -41,6 +41,17 @@ impl ConditionEvaluator for WhenThreshold {
             .unwrap_or(0.0);
         Ok(actual >= min)
     }
+    fn params_schema(&self) -> Option<Value> {
+        Some(json!({
+            "type": "object",
+            "properties": {
+                "key": { "type": "string" },
+                "min": { "type": "number" }
+            },
+            "required": ["min"],
+            "additionalProperties": false
+        }))
+    }
 }
 
 /// Passes when counter fact >= params.threshold (alias for threshold with `counter` key default).
@@ -86,6 +97,15 @@ impl ActionHandler for ThenLog {
         eprintln!("[dc_rulekit-demo] {}", message);
         Ok(json!({ "logged": message }))
     }
+    fn params_schema(&self) -> Option<Value> {
+        Some(json!({
+            "type": "object",
+            "properties": {
+                "message": { "type": "string" }
+            },
+            "additionalProperties": false
+        }))
+    }
 }
 
 /// Pure planner: returns increment instruction (host may apply); does not mutate ctx.
@@ -120,8 +140,8 @@ pub fn register_all(registry: &mut dc_rulekit::PluginRegistry) {
 /// End-to-end quickstart: propose static rule → approve → evaluate → audit.
 pub fn run_quickstart_example() -> Result<Value> {
     use dc_rulekit::{
-        Action, AuditHook, Condition, Engine, EvaluateOptions, ProposalStore, Rule, RuleSource,
-        RuleStore,
+        AuditHook, Condition, ConditionNode, Engine, EvaluateOptions, ProposalStore, Rule,
+        RuleEvent, RuleSource, RuleStore,
     };
     use std::sync::{Arc, Mutex};
 
@@ -137,25 +157,25 @@ pub fn run_quickstart_example() -> Result<Value> {
     let engine = Engine::new(&registry);
 
     let mut rule = Rule::new("demo.app/quickstart", "Quickstart", RuleSource::Static);
-    rule.when.push(Condition {
+    rule.conditions = ConditionNode::all(vec![ConditionNode::leaf(Condition {
         id: "always".into(),
         plugin: PLUGIN_ALWAYS.into(),
         params: json!({}),
-    });
-    rule.then.push(Action {
+    })]);
+    rule.events.push(RuleEvent {
         id: "log".into(),
-        plugin: PLUGIN_LOG.into(),
+        event_type: PLUGIN_LOG.into(),
         params: json!({ "message": "approved rule fired" }),
     });
 
     let mut proposals = ProposalStore::in_memory();
     let mut active = RuleStore::in_memory();
-    let proposal = proposals.propose(rule)?;
+    let proposal = proposals.propose(rule, &registry)?;
     let active_rule = proposals.approve(&proposal.proposal_id, &mut active)?;
 
     let hook_storage = Arc::new(Mutex::new(Vec::new()));
     let hook = CaptureHook(Arc::clone(&hook_storage));
-    let opaque = json!({ "example": "quickstart", "version": 1 });
+    let opaque = json!({ "example": "quickstart", "version": 2 });
 
     let receipt = engine.evaluate_with_audit(
         &active_rule,

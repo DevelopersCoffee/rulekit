@@ -1,4 +1,5 @@
 export 'src/audit.dart';
+export 'src/conditions.dart';
 export 'src/context.dart';
 export 'src/engine.dart';
 export 'src/error.dart';

@@ -1,0 +1,24 @@
+{
+  "schema_version": 2,
+  "id": "demo.app/hello",
+  "title": "Hello when value is high enough",
+  "source": "llm",
+  "enabled": true,
+  "trigger": { "type": "event", "topic": "facts.updated" },
+  "conditions": {
+    "all": [
+      {
+        "id": "threshold",
+        "plugin": "demo.when.threshold",
+        "params": { "key": "value", "min": 10 }
+      }
+    ]
+  },
+  "events": [
+    {
+      "id": "log",
+      "type": "demo.then.log",
+      "params": { "message": "threshold met" }
+    }
+  ]
+}

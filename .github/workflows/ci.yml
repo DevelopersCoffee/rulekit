@@ -10,8 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.85
       - run: cargo test --all
+      - name: Golden rule fixtures
+        run: cargo test -p dc_rulekit --test schema_golden
 
   dart:
     runs-on: ubuntu-latest

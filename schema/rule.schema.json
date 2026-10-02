@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://developers.coffee/schemas/dc_rulekit/rule.schema.json",
+  "title": "dc_rulekit Rule (v2)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "title", "source", "conditions", "events"],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 2 },
+    "id": { "type": "string", "minLength": 1 },
+    "title": { "type": "string", "minLength": 1 },
+    "source": { "type": "string", "enum": ["static", "llm"] },
+    "enabled": { "type": "boolean", "default": true },
+    "trigger": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string", "enum": ["manual", "event", "schedule"] },
+        "topic": { "type": "string" },
+        "expression": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "conditions": { "$ref": "#/$defs/conditionNode" },
+    "events": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/event" }
+    }
+  },
+  "$defs": {
+    "conditionNode": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["all"],
+          "additionalProperties": false,
+          "properties": {
+            "all": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/conditionNode" }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["any"],
+          "additionalProperties": false,
+          "properties": {
+            "any": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/conditionNode" }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["not"],
+          "additionalProperties": false,
+          "properties": {
+            "not": { "$ref": "#/$defs/conditionNode" }
+          }
+        },
+        { "$ref": "#/$defs/conditionLeaf" }
+      ]
+    },
+    "conditionLeaf": {
+      "type": "object",
+      "required": ["id", "plugin"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "plugin": { "type": "string", "minLength": 1 },
+        "fact": { "type": "string", "minLength": 1 },
+        "params": { "type": "object" }
+      },
+      "anyOf": [{ "required": ["plugin"] }, { "required": ["fact"] }]
+    },
+    "event": {
+      "type": "object",
+      "required": ["id", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "minLength": 1 },
+        "params": { "type": "object" }
+      }
+    }
+  }
+}

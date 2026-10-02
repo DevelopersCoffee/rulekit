@@ -1,6 +1,6 @@
 use dc_rulekit::{
-    Action, ActionHandler, AuditHook, Condition, ConditionEvaluator, Engine, EvaluateOptions,
-    EvalContext, PluginRegistry, ProposalStore, Rule, RuleSource, RuleStore, RulekitError,
+    AuditHook, Condition, ConditionEvaluator, ConditionNode, Engine, EvaluateOptions, EvalContext,
+    PluginRegistry, ProposalStore, Rule, RuleEvent, RuleSource, RuleStore, RulekitError,
 };
 use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
@@ -25,10 +25,30 @@ impl ConditionEvaluator for NeverCondition {
     }
 }
 
+struct SchemaCondition;
+impl ConditionEvaluator for SchemaCondition {
+    fn plugin_id(&self) -> &str {
+        "demo.when.schema"
+    }
+    fn evaluate(&self, _params: &Value, _ctx: &EvalContext) -> dc_rulekit::Result<bool> {
+        Ok(true)
+    }
+    fn params_schema(&self) -> Option<Value> {
+        Some(json!({
+            "type": "object",
+            "required": ["min"],
+            "properties": {
+                "min": { "type": "number" }
+            },
+            "additionalProperties": false
+        }))
+    }
+}
+
 struct LogAction {
     log: Arc<Mutex<Vec<String>>>,
 }
-impl ActionHandler for LogAction {
+impl dc_rulekit::ActionHandler for LogAction {
     fn plugin_id(&self) -> &str {
         "demo.then.log"
     }
@@ -46,7 +66,7 @@ impl ActionHandler for LogAction {
 }
 
 struct PureEchoAction;
-impl ActionHandler for PureEchoAction {
+impl dc_rulekit::ActionHandler for PureEchoAction {
     fn plugin_id(&self) -> &str {
         "demo.then.echo"
     }
@@ -72,6 +92,7 @@ fn registry_with_demo() -> (PluginRegistry, Arc<Mutex<Vec<String>>>) {
     let mut reg = PluginRegistry::new();
     reg.register_condition(Box::new(AlwaysCondition));
     reg.register_condition(Box::new(NeverCondition));
+    reg.register_condition(Box::new(SchemaCondition));
     reg.register_action(Box::new(LogAction {
         log: Arc::clone(&log),
     }));
@@ -79,20 +100,55 @@ fn registry_with_demo() -> (PluginRegistry, Arc<Mutex<Vec<String>>>) {
     (reg, log)
 }
 
+fn rule_with_always_log() -> Rule {
+    let mut rule = Rule::new("demo.app/rule-1", "Test", RuleSource::Static);
+    rule.conditions = ConditionNode::all(vec![ConditionNode::leaf(Condition {
+        id: "c1".into(),
+        plugin: "demo.when.always".into(),
+        params: json!({}),
+    })]);
+    rule.events.push(RuleEvent {
+        id: "a1".into(),
+        event_type: "demo.then.log".into(),
+        params: json!({ "message": "hello" }),
+    });
+    rule
+}
+
 #[test]
 fn evaluate_runs_actions_when_conditions_pass() {
     let (reg, log) = registry_with_demo();
     let engine = Engine::new(&reg);
-    let mut rule = Rule::new("demo.app/rule-1", "Test", RuleSource::Static);
-    rule.when.push(Condition {
-        id: "c1".into(),
-        plugin: "demo.when.always".into(),
-        params: json!({}),
-    });
-    rule.then.push(Action {
-        id: "a1".into(),
-        plugin: "demo.then.log".into(),
-        params: json!({ "message": "hello" }),
+    let rule = rule_with_always_log();
+
+    let receipt = engine
+        .evaluate(&rule, &EvalContext::new("demo.app"), EvaluateOptions::default())
+        .unwrap();
+    assert!(receipt.matched);
+    assert_eq!(log.lock().unwrap().len(), 1);
+}
+
+#[test]
+fn nested_any_condition() {
+    let (reg, log) = registry_with_demo();
+    let engine = Engine::new(&reg);
+    let mut rule = Rule::new("demo.app/any", "Any", RuleSource::Static);
+    rule.conditions = ConditionNode::any(vec![
+        ConditionNode::leaf(Condition {
+            id: "n1".into(),
+            plugin: "demo.when.never".into(),
+            params: json!({}),
+        }),
+        ConditionNode::leaf(Condition {
+            id: "a1".into(),
+            plugin: "demo.when.always".into(),
+            params: json!({}),
+        }),
+    ]);
+    rule.events.push(RuleEvent {
+        id: "e1".into(),
+        event_type: "demo.then.log".into(),
+        params: json!({ "message": "any" }),
     });
 
     let receipt = engine
@@ -106,17 +162,7 @@ fn evaluate_runs_actions_when_conditions_pass() {
 fn dry_run_skips_impure_actions() {
     let (reg, log) = registry_with_demo();
     let engine = Engine::new(&reg);
-    let mut rule = Rule::new("demo.app/rule-2", "Dry", RuleSource::Static);
-    rule.when.push(Condition {
-        id: "c1".into(),
-        plugin: "demo.when.always".into(),
-        params: json!({}),
-    });
-    rule.then.push(Action {
-        id: "a1".into(),
-        plugin: "demo.then.log".into(),
-        params: json!({}),
-    });
+    let rule = rule_with_always_log();
 
     let receipt = engine
         .evaluate(
@@ -136,14 +182,14 @@ fn dry_run_runs_pure_actions() {
     let (reg, _log) = registry_with_demo();
     let engine = Engine::new(&reg);
     let mut rule = Rule::new("demo.app/rule-3", "Pure dry", RuleSource::Static);
-    rule.when.push(Condition {
+    rule.conditions = ConditionNode::all(vec![ConditionNode::leaf(Condition {
         id: "c1".into(),
         plugin: "demo.when.always".into(),
         params: json!({}),
-    });
-    rule.then.push(Action {
+    })]);
+    rule.events.push(RuleEvent {
         id: "a1".into(),
-        plugin: "demo.then.echo".into(),
+        event_type: "demo.then.echo".into(),
         params: json!({ "x": 1 }),
     });
 
@@ -162,11 +208,11 @@ fn unknown_plugin_fail_closed() {
     let (reg, _) = registry_with_demo();
     let engine = Engine::new(&reg);
     let mut rule = Rule::new("demo.app/rule-4", "Bad", RuleSource::Static);
-    rule.when.push(Condition {
+    rule.conditions = ConditionNode::all(vec![ConditionNode::leaf(Condition {
         id: "c1".into(),
         plugin: "unknown.plugin".into(),
         params: json!({}),
-    });
+    })]);
 
     let err = engine
         .evaluate(&rule, &EvalContext::new("demo.app"), EvaluateOptions::default())
@@ -179,16 +225,17 @@ fn unknown_plugin_fail_closed() {
 
 #[test]
 fn proposal_approve_and_store_roundtrip() {
+    let (reg, _) = registry_with_demo();
     let mut proposals = ProposalStore::in_memory();
     let mut active = RuleStore::in_memory();
     let mut rule = Rule::new("demo.app/rule-prop", "Prop", RuleSource::Static);
-    rule.when.push(Condition {
+    rule.conditions = ConditionNode::all(vec![ConditionNode::leaf(Condition {
         id: "c1".into(),
         plugin: "demo.when.always".into(),
         params: json!({}),
-    });
+    })]);
 
-    let proposal = proposals.propose(rule).unwrap();
+    let proposal = proposals.propose(rule, &reg).unwrap();
     assert_eq!(proposal.status, dc_rulekit::ProposalStatus::Proposed);
 
     let active_rule = proposals.approve(&proposal.proposal_id, &mut active).unwrap();
@@ -197,13 +244,48 @@ fn proposal_approve_and_store_roundtrip() {
 }
 
 #[test]
+fn propose_rejects_invalid_params_schema() {
+    let (reg, _) = registry_with_demo();
+    let mut proposals = ProposalStore::in_memory();
+    let mut rule = Rule::new("demo.app/bad-params", "Bad", RuleSource::Static);
+    rule.conditions = ConditionNode::all(vec![ConditionNode::leaf(Condition {
+        id: "c1".into(),
+        plugin: "demo.when.schema".into(),
+        params: json!({ "wrong": true }),
+    })]);
+
+    let err = proposals.propose(rule, &reg).unwrap_err();
+    assert!(matches!(err, RulekitError::InvalidPluginParams { .. }));
+}
+
+#[test]
+fn v1_rule_json_compat_deserializes_and_runs() {
+    let (reg, log) = registry_with_demo();
+    let engine = Engine::new(&reg);
+    let v1 = json!({
+        "schema_version": 1,
+        "id": "demo.app/v1",
+        "title": "Legacy",
+        "source": "static",
+        "when": [{ "id": "c1", "plugin": "demo.when.always", "params": {} }],
+        "then": [{ "id": "a1", "plugin": "demo.then.log", "params": { "message": "legacy" } }]
+    });
+    let rule: Rule = serde_json::from_value(v1).unwrap();
+    assert_eq!(rule.schema_version, 2);
+    engine
+        .evaluate(&rule, &EvalContext::new("demo.app"), EvaluateOptions::default())
+        .unwrap();
+    assert_eq!(log.lock().unwrap().len(), 1);
+}
+
+#[test]
 fn store_file_roundtrip() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("rules.json");
     let mut rule = Rule::new("demo.app/file", "File", RuleSource::Static);
-    rule.then.push(Action {
+    rule.events.push(RuleEvent {
         id: "a1".into(),
-        plugin: "demo.then.log".into(),
+        event_type: "demo.then.log".into(),
         params: json!({}),
     });
 
@@ -220,14 +302,14 @@ fn audit_hook_receives_opaque_payload() {
     let (reg, _) = registry_with_demo();
     let engine = Engine::new(&reg);
     let mut rule = Rule::new("demo.app/audit", "Audit", RuleSource::Static);
-    rule.when.push(Condition {
+    rule.conditions = ConditionNode::all(vec![ConditionNode::leaf(Condition {
         id: "c1".into(),
         plugin: "demo.when.always".into(),
         params: json!({}),
-    });
-    rule.then.push(Action {
+    })]);
+    rule.events.push(RuleEvent {
         id: "a1".into(),
-        plugin: "demo.then.echo".into(),
+        event_type: "demo.then.echo".into(),
         params: json!({}),
     });
 
