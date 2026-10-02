@@ -1,0 +1,11 @@
+name: dc_rulekit
+description: Business-agnostic on-device rules engine (Dart mirror of the Rust dc_rulekit core).
+version: 0.1.0
+repository: https://github.com/DevelopersCoffee/rulekit
+
+environment:
+  sdk: ^3.5.0
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0
