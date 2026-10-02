@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/dc_rulekit",
+    "crates/dc_rulekit_demo_plugins",
+]
+default-members = ["crates/dc_rulekit"]
+
+[workspace.package]
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/DevelopersCoffee/rulekit"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+uuid = { version = "=1.11.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }

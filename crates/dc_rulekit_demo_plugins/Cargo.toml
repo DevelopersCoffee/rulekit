@@ -1,0 +1,11 @@
+[package]
+name = "dc_rulekit_demo_plugins"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Toy condition/action plugins for dc_rulekit examples"
+publish = false
+
+[dependencies]
+dc_rulekit = { path = "../dc_rulekit" }
+serde_json = { workspace = true }
