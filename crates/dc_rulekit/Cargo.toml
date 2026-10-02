@@ -5,6 +5,8 @@ edition = "2021"
 license = "MIT"
 description = "Business-agnostic on-device rules engine with host-supplied plugins"
 readme = "README.md"
+repository = "https://github.com/DevelopersCoffee/rulekit"
+homepage = "https://github.com/DevelopersCoffee/rulekit"
 keywords = ["rules", "engine", "plugins"]
 categories = ["config"]
 
