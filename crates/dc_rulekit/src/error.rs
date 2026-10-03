@@ -43,6 +43,12 @@ pub enum RulekitError {
 
     #[error("evaluation error: {message}")]
     EvaluationError { message: String },
+
+    #[error("invalid plugin params: plugin={plugin_id}, {message}")]
+    InvalidPluginParams {
+        plugin_id: String,
+        message: String,
+    },
 }
 
 pub type Result<T> = std::result::Result<T, RulekitError>;

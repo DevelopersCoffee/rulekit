@@ -74,3 +74,15 @@ class StoreError extends RulekitException {
   StoreError(this.detail) : super('store error: $detail');
   final String detail;
 }
+
+class EvaluationError extends RulekitException {
+  EvaluationError(this.detail) : super('evaluation error: $detail');
+  final String detail;
+}
+
+class InvalidPluginParams extends RulekitException {
+  InvalidPluginParams(this.pluginId, this.detail)
+      : super('invalid plugin params: plugin=$pluginId, $detail');
+  final String pluginId;
+  final String detail;
+}

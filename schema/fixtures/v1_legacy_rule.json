@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "id": "demo.app/legacy",
+  "title": "v0.1 flat when/then",
+  "source": "static",
+  "when": [
+    {
+      "id": "c1",
+      "plugin": "demo.when.always",
+      "params": {}
+    }
+  ],
+  "then": [
+    {
+      "id": "a1",
+      "plugin": "demo.then.log",
+      "params": { "message": "legacy" }
+    }
+  ]
+}

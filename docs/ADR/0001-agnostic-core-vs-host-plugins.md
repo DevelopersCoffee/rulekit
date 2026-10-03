@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted (v0.1.0)
+Accepted (v0.1.0). Rule **document** shape for v0.2+ is specified in [ADR 0002](./0002-industry-standard-rule-documents.md).
 
 ## Context
 

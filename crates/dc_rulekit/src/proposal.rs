@@ -1,5 +1,6 @@
 use crate::error::{Result, RulekitError};
 use crate::model::{ProposalStatus, Rule, RuleProposal};
+use crate::plugin::PluginRegistry;
 use crate::store::RuleStore;
 use std::collections::HashMap;
 use std::fs;
@@ -67,8 +68,10 @@ impl ProposalStore {
         Ok(())
     }
 
-    pub fn propose(&mut self, rule: Rule) -> Result<RuleProposal> {
+    pub fn propose(&mut self, rule: Rule, registry: &PluginRegistry) -> Result<RuleProposal> {
         rule.validate_schema()?;
+        registry.validate_rule_plugins(&rule)?;
+        registry.validate_rule_params(&rule)?;
         let proposal = RuleProposal::new(rule);
         self.proposals
             .insert(proposal.proposal_id.clone(), proposal.clone());

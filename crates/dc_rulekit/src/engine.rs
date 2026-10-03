@@ -1,9 +1,8 @@
 use crate::audit::AuditHook;
+use crate::conditions::ConditionNode;
 use crate::context::EvalContext;
 use crate::error::{Result, RulekitError};
-use crate::model::{
-    ActionOutcome, AuditReceipt, ConditionOutcome, Rule,
-};
+use crate::model::{ActionOutcome, AuditReceipt, ConditionOutcome, Rule};
 use crate::plugin::PluginRegistry;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -26,7 +25,7 @@ impl<'a> Engine<'a> {
         Self { registry }
     }
 
-    /// Validate plugins and evaluate `when` conditions (all must pass), then run `then` actions.
+    /// Validate plugins and evaluate `conditions` (json-rules-engine tree), then run `events`.
     pub fn evaluate(
         &self,
         rule: &Rule,
@@ -41,47 +40,28 @@ impl<'a> Engine<'a> {
         }
         self.registry.validate_rule_plugins(rule)?;
 
-        let mut condition_results = Vec::with_capacity(rule.when.len());
-        let mut all_passed = true;
-
-        for condition in &rule.when {
-            let evaluator = self.registry.get_condition(&condition.plugin)?;
-            let passed = evaluator.evaluate(&condition.params, ctx)?;
-            if !passed {
-                all_passed = false;
-                condition_results.push(ConditionOutcome {
-                    condition_id: condition.id.clone(),
-                    plugin: condition.plugin.clone(),
-                    passed: false,
-                    detail: None,
-                });
-                // Fail-fast on first failing condition (ordered evaluation).
-                break;
-            }
-            condition_results.push(ConditionOutcome {
-                condition_id: condition.id.clone(),
-                plugin: condition.plugin.clone(),
-                passed: true,
-                detail: None,
-            });
-        }
+        let mut condition_results = Vec::new();
+        let all_passed = self.evaluate_conditions(
+            &rule.conditions,
+            ctx,
+            &mut condition_results,
+            true,
+        )?;
 
         let mut action_outcomes = Vec::new();
         if all_passed {
-            for action in &rule.then {
-                let handler = self.registry.get_action(&action.plugin)?;
+            for action in &rule.events {
+                let handler = self.registry.get_action(action.plugin_id())?;
                 let (executed, skipped_dry_run, result) = if options.dry_run && !handler.is_pure() {
                     (false, true, None)
                 } else {
                     match handler.execute(&action.params, ctx) {
                         Ok(value) => (true, false, Some(value)),
-                        Err(RulekitError::ActionDenied {
-                            reason, ..
-                        }) => {
+                        Err(RulekitError::ActionDenied { reason, .. }) => {
                             return Err(RulekitError::ActionDenied {
                                 rule_id: rule.id.clone(),
                                 action_id: action.id.clone(),
-                                plugin_id: action.plugin.clone(),
+                                plugin_id: action.plugin_id().to_string(),
                                 reason,
                             });
                         }
@@ -90,7 +70,7 @@ impl<'a> Engine<'a> {
                 };
                 action_outcomes.push(ActionOutcome {
                     action_id: action.id.clone(),
-                    plugin: action.plugin.clone(),
+                    event_type: action.event_type.clone(),
                     executed,
                     skipped_dry_run,
                     result,
@@ -106,6 +86,60 @@ impl<'a> Engine<'a> {
             action_outcomes,
             opaque: serde_json::json!({}),
         })
+    }
+
+    fn evaluate_conditions(
+        &self,
+        node: &ConditionNode,
+        ctx: &EvalContext,
+        outcomes: &mut Vec<ConditionOutcome>,
+        fail_fast: bool,
+    ) -> Result<bool> {
+        match node {
+            ConditionNode::All { all } => {
+                if all.is_empty() {
+                    return Ok(true);
+                }
+                for child in all {
+                    let passed = self.evaluate_conditions(child, ctx, outcomes, fail_fast)?;
+                    if !passed {
+                        return Ok(false);
+                    }
+                }
+                Ok(true)
+            }
+            ConditionNode::Any { any } => {
+                if any.is_empty() {
+                    return Ok(false);
+                }
+                for child in any {
+                    let mut branch_outcomes = Vec::new();
+                    let passed =
+                        self.evaluate_conditions(child, ctx, &mut branch_outcomes, false)?;
+                    if passed {
+                        outcomes.extend(branch_outcomes);
+                        return Ok(true);
+                    }
+                    outcomes.extend(branch_outcomes);
+                }
+                Ok(false)
+            }
+            ConditionNode::Not { not } => {
+                let inner = self.evaluate_conditions(not, ctx, outcomes, false)?;
+                Ok(!inner)
+            }
+            ConditionNode::Leaf(condition) => {
+                let evaluator = self.registry.get_condition(&condition.plugin)?;
+                let passed = evaluator.evaluate(&condition.params, ctx)?;
+                outcomes.push(ConditionOutcome {
+                    condition_id: condition.id.clone(),
+                    plugin: condition.plugin.clone(),
+                    passed,
+                    detail: None,
+                });
+                Ok(passed)
+            }
+        }
     }
 
     pub fn evaluate_with_audit<H: AuditHook>(

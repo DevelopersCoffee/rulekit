@@ -1,6 +1,7 @@
 import 'error.dart';
 import 'model.dart';
 import 'context.dart';
+import 'schema_validate.dart';
 
 abstract class ConditionEvaluator {
   String get pluginId;
@@ -11,6 +12,16 @@ abstract class ActionHandler {
   String get pluginId;
   bool get isPure;
   Map<String, dynamic> execute(Map<String, dynamic> params, EvalContext ctx);
+}
+
+/// Optional JSON Schema for plugin params (implement on evaluators/handlers that need propose-time validation).
+abstract interface class ParamsSchemaProvider {
+  Map<String, dynamic>? get paramsSchema;
+}
+
+Map<String, dynamic>? paramsSchemaFor(Object plugin) {
+  if (plugin is ParamsSchemaProvider) return plugin.paramsSchema;
+  return null;
 }
 
 class PluginRegistry {
@@ -38,11 +49,28 @@ class PluginRegistry {
   }
 
   void validateRulePlugins(Rule rule) {
-    for (final c in rule.when) {
+    for (final c in rule.conditions.leaves()) {
       getCondition(c.plugin);
     }
-    for (final a in rule.then) {
-      getAction(a.plugin);
+    for (final a in rule.events) {
+      getAction(a.pluginId);
+    }
+  }
+
+  void validateRuleParams(Rule rule) {
+    for (final c in rule.conditions.leaves()) {
+      final evaluator = getCondition(c.plugin);
+      final schema = paramsSchemaFor(evaluator);
+      if (schema != null) {
+        validateParamsAgainstSchema(c.plugin, c.params, schema);
+      }
+    }
+    for (final a in rule.events) {
+      final handler = getAction(a.pluginId);
+      final schema = paramsSchemaFor(handler);
+      if (schema != null) {
+        validateParamsAgainstSchema(a.pluginId, a.params, schema);
+      }
     }
   }
 }

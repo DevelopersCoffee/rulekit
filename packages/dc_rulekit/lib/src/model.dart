@@ -1,6 +1,7 @@
+import 'conditions.dart';
 import 'error.dart';
 
-const currentSchemaVersion = 1;
+const currentSchemaVersion = 2;
 
 enum RuleSource { static, llm }
 
@@ -35,44 +36,6 @@ class Trigger {
   }
 }
 
-class Condition {
-  Condition({required this.id, required this.plugin, this.params = const {}});
-  final String id;
-  final String plugin;
-  final Map<String, dynamic> params;
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'plugin': plugin,
-        'params': params,
-      };
-
-  factory Condition.fromJson(Map<String, dynamic> json) => Condition(
-        id: json['id'] as String,
-        plugin: json['plugin'] as String,
-        params: Map<String, dynamic>.from(json['params'] as Map? ?? {}),
-      );
-}
-
-class Action {
-  Action({required this.id, required this.plugin, this.params = const {}});
-  final String id;
-  final String plugin;
-  final Map<String, dynamic> params;
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'plugin': plugin,
-        'params': params,
-      };
-
-  factory Action.fromJson(Map<String, dynamic> json) => Action(
-        id: json['id'] as String,
-        plugin: json['plugin'] as String,
-        params: Map<String, dynamic>.from(json['params'] as Map? ?? {}),
-      );
-}
-
 class Rule {
   Rule({
     required this.id,
@@ -81,9 +44,9 @@ class Rule {
     this.schemaVersion = currentSchemaVersion,
     this.enabled = true,
     this.trigger = const Trigger.manual(),
-    this.when = const [],
-    this.then = const [],
-  });
+    ConditionNode? conditions,
+    this.events = const [],
+  }) : conditions = conditions ?? ConditionNode.all(const []);
 
   final int schemaVersion;
   final String id;
@@ -91,8 +54,8 @@ class Rule {
   final RuleSource source;
   final bool enabled;
   final Trigger trigger;
-  final List<Condition> when;
-  final List<Action> then;
+  final ConditionNode conditions;
+  final List<RuleEvent> events;
 
   void validateSchema() {
     if (schemaVersion != currentSchemaVersion) {
@@ -100,6 +63,12 @@ class Rule {
         expected: currentSchemaVersion,
         found: schemaVersion,
       );
+    }
+    conditions.validateShape();
+    for (final ev in events) {
+      if (ev.id.isEmpty || ev.eventType.isEmpty) {
+        throw EvaluationError('event requires non-empty id and type');
+      }
     }
   }
 
@@ -110,26 +79,50 @@ class Rule {
         'source': source.name,
         'enabled': enabled,
         'trigger': trigger.toJson(),
-        'when': when.map((c) => c.toJson()).toList(),
-        'then': then.map((a) => a.toJson()).toList(),
+        'conditions': conditions.toJson(),
+        'events': events.map((e) => e.toJson()).toList(),
       };
 
-  factory Rule.fromJson(Map<String, dynamic> json) => Rule(
-        schemaVersion: json['schema_version'] as int? ?? currentSchemaVersion,
-        id: json['id'] as String,
-        title: json['title'] as String,
-        source: RuleSource.values.byName(json['source'] as String? ?? 'static'),
-        enabled: json['enabled'] as bool? ?? true,
-        trigger: Trigger.fromJson(
-          Map<String, dynamic>.from(json['trigger'] as Map? ?? {'type': 'manual'}),
-        ),
-        when: (json['when'] as List? ?? [])
-            .map((e) => Condition.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList(),
-        then: (json['then'] as List? ?? [])
-            .map((e) => Action.fromJson(Map<String, dynamic>.from(e as Map)))
-            .toList(),
-      );
+  factory Rule.fromJson(Map<String, dynamic> json) {
+    final version = json['schema_version'] as int? ?? currentSchemaVersion;
+    if (!readableSchemaVersions.contains(version)) {
+      throw SchemaVersionMismatch(expected: currentSchemaVersion, found: version);
+    }
+
+    ConditionNode conditions;
+    if (json['conditions'] != null) {
+      conditions = ConditionNode.fromJson(json['conditions']);
+    } else {
+      final when = (json['when'] as List? ?? [])
+          .map((e) => Condition.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+      conditions = conditionsFromV1When(when);
+    }
+
+    List<RuleEvent> events;
+    if ((json['events'] as List?)?.isNotEmpty ?? false) {
+      events = (json['events'] as List)
+          .map((e) => RuleEvent.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    } else {
+      events = (json['then'] as List? ?? [])
+          .map((e) => RuleEvent.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    }
+
+    return Rule(
+      schemaVersion: currentSchemaVersion,
+      id: json['id'] as String,
+      title: json['title'] as String,
+      source: RuleSource.values.byName(json['source'] as String? ?? 'static'),
+      enabled: json['enabled'] as bool? ?? true,
+      trigger: Trigger.fromJson(
+        Map<String, dynamic>.from(json['trigger'] as Map? ?? {'type': 'manual'}),
+      ),
+      conditions: conditions,
+      events: events,
+    );
+  }
 }
 
 enum ProposalStatus { proposed, approved, rejected }
@@ -185,20 +178,20 @@ class ConditionOutcome {
 class ActionOutcome {
   ActionOutcome({
     required this.actionId,
-    required this.plugin,
+    required this.eventType,
     required this.executed,
     required this.skippedDryRun,
     this.result,
   });
   final String actionId;
-  final String plugin;
+  final String eventType;
   final bool executed;
   final bool skippedDryRun;
   final Map<String, dynamic>? result;
 
   Map<String, dynamic> toJson() => {
         'action_id': actionId,
-        'plugin': plugin,
+        'type': eventType,
         'executed': executed,
         'skipped_dry_run': skippedDryRun,
         if (result != null) 'result': result,
