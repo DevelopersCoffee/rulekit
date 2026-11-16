@@ -4,7 +4,7 @@
 **Repository:** [DevelopersCoffee/rulekit](https://github.com/DevelopersCoffee/rulekit)  
 **Target Release Version:** `0.2.0`  
 **Git tip on `main`:** `1c3aac02a9a1c4c82151334332c1e74a55cbf5d3` (docs-only follow-up after v0.2 merge)  
-**Release verification baseline (v0.2.0 code):** `9b8989e472091c33beea57f6fa0778c1a63c65df` (merge of [PR #2](https://github.com/DevelopersCoffee/rulekit/pull/2))  
+**Release verification baseline (v0.2.0 code):** `9b8989e56ff92a3b89af77de256410adbd684231` (merge of [PR #2](https://github.com/DevelopersCoffee/rulekit/pull/2))  
 
 ---
 
@@ -25,7 +25,7 @@ A rigorous local and registry baseline has been conducted across both Rust and D
 
 | Commit SHA | Author | Date | Subject & Scope | PR Reference |
 | :--- | :--- | :--- | :--- | :--- |
-| `1c3aac0` | Uday Chauhan | 2026-10-16 | docs: add release baseline, plan, backlog, and todos for v0.2.0 | — |
+| `1c3aac0` | uday chauhan | 2026-10-16 | docs: add release baseline, plan, backlog, and todos for v0.2.0 | — |
 | `9b8989e` | Uday Chauhan | 2026-10-03 | Merge pull request #2 from DevelopersCoffee/cursor/industry-standard-rules-1f87 | [PR #2](https://github.com/DevelopersCoffee/rulekit/pull/2) |
 | `999b431` | Cursor Agent & Uday Chauhan | 2026-10-02 | feat(dc_rulekit): v0.2 industry-standard rule documents | Feature commit for PR #2 |
 | `fe4654c` | Pub.dev (`coffee.devloper@gmail.com`) | 2026-10-02 | chore: publish metadata for dc_rulekit (LICENSE/README/CHANGELOG + crate repo URL) | Release metadata prep |
@@ -38,7 +38,6 @@ A rigorous local and registry baseline has been conducted across both Rust and D
 - **Local Branches:** `main` (clean working tree, tracking `origin/main`).
 - **Remote Branches:**
   - `origin/main`: matches local `main` at `1c3aac0` (release code unchanged since `9b8989e`; tip adds project docs only).
-  - `origin/cursor/industry-standard-rules-1f87`: head of PR #2 at `999b431` (fully merged).
 - **Working Tree:** Clean, no uncommitted changes or unstaged files.
 
 ---
