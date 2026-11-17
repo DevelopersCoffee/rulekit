@@ -14,9 +14,9 @@ DevelopersCoffee needs an on-device rules framework usable across multiple apps 
 
 The core exposes only:
 
-- **Rule document model**: `Rule`, `Condition`, `Action`, `Trigger` (`manual` | `schedule` | `event`), `RuleSource` (`static` | `llm`), `schema_version`.
-- **Lifecycle**: `ProposalStore` (`propose` → `approve` / `reject`) → durable **active** rules in `RuleStore`.
-- **Evaluation**: `Engine` evaluates `when` conditions in order (all must pass; fail-fast), then runs `then` actions in order.
+- **Rule document model (v0.2)**: `Rule`, nested `ConditionNode` (`all` / `any` / `not`) with leaf `Condition` plugins, `RuleEvent` actions in `events[]` (`Action` is a Rust/Dart alias for `RuleEvent`), `Trigger` (`manual` | `schedule` | `event`), `RuleSource` (`static` | `llm`), `schema_version`. Legacy v0.1 JSON with flat `when` / `then` still deserializes and normalizes to v2 in memory (see ADR 0002).
+- **Lifecycle**: `ProposalStore` (`propose(rule, registry)` validates plugin params → `approve` / `reject`) → durable **active** rules in `RuleStore`.
+- **Evaluation**: `Engine` walks the `conditions` tree (json-rules-engine style), then runs matching `events` in order when the tree passes.
 - **Extensions**: `PluginRegistry` maps string plugin ids to host-supplied `ConditionEvaluator` / `ActionHandler`.
 - **Audit**: `AuditHook` receives an `AuditReceipt` with structured outcomes plus an **opaque** JSON map the host interprets.
 - **Dry-run**: Impure actions (`is_pure == false`) are not executed; outcomes record `skipped_dry_run`. Pure actions may run under dry-run.
