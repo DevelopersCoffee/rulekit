@@ -3,7 +3,7 @@
 **Date of Record:** October 16, 2026  
 **Repository:** [DevelopersCoffee/rulekit](https://github.com/DevelopersCoffee/rulekit)  
 **Target Release Version:** `0.2.0`  
-**Git tip on `main`:** `1c3aac02a9a1c4c82151334332c1e74a55cbf5d3` (docs-only follow-up after v0.2 merge)  
+**Git tip on `main`:** `7e6de7f13e1fb314110b2866d9d0e10d0dac2b70` (merge of [PR #3](https://github.com/DevelopersCoffee/rulekit/pull/3); docs-only drift on top of v0.2.0 code)  
 **Release verification baseline (v0.2.0 code):** `9b8989e56ff92a3b89af77de256410adbd684231` (merge of [PR #2](https://github.com/DevelopersCoffee/rulekit/pull/2))  
 
 ---
@@ -25,6 +25,9 @@ A rigorous local and registry baseline has been conducted across both Rust and D
 
 | Commit SHA | Author | Date | Subject & Scope | PR Reference |
 | :--- | :--- | :--- | :--- | :--- |
+| `7e6de7f` | Uday Chauhan | 2026-11-17 | Merge pull request #3 from DevelopersCoffee/cursor/docs-drift-weekly-9735 | [PR #3](https://github.com/DevelopersCoffee/rulekit/pull/3) |
+| `cb44513` | Cursor Agent | 2026-11-16 | docs: fix PR #2 merge SHA and baseline branch inventory | Follow-up on [PR #3](https://github.com/DevelopersCoffee/rulekit/pull/3) |
+| `2d55a4e` | Cursor Agent | 2026-11-16 | docs: realign ADR 0001 and release baseline with v0.2 main | Feature commit for [PR #3](https://github.com/DevelopersCoffee/rulekit/pull/3) |
 | `1c3aac0` | uday chauhan | 2026-10-16 | docs: add release baseline, plan, backlog, and todos for v0.2.0 | — |
 | `9b8989e` | Uday Chauhan | 2026-10-03 | Merge pull request #2 from DevelopersCoffee/cursor/industry-standard-rules-1f87 | [PR #2](https://github.com/DevelopersCoffee/rulekit/pull/2) |
 | `999b431` | Cursor Agent & Uday Chauhan | 2026-10-02 | feat(dc_rulekit): v0.2 industry-standard rule documents | Feature commit for PR #2 |
@@ -37,7 +40,7 @@ A rigorous local and registry baseline has been conducted across both Rust and D
 
 - **Local Branches:** `main` (clean working tree, tracking `origin/main`).
 - **Remote Branches:**
-  - `origin/main`: matches local `main` at `1c3aac0` (release code unchanged since `9b8989e`; tip adds project docs only).
+  - `origin/main`: matches local `main` at `7e6de7f` (release code unchanged since `9b8989e`; tip adds project docs only).
 - **Working Tree:** Clean, no uncommitted changes or unstaged files.
 
 ---
@@ -197,4 +200,4 @@ A rigorous local and registry baseline has been conducted across both Rust and D
 
 ## 7. Baseline Conclusion
 
-The v0.2 implementation at commit `9b8989e` remains functionally stable, internally consistent, and thoroughly tested across Rust and Dart implementations. `main` at `1c3aac0` adds release-tracking docs only (`RULEKIT_*`, `TODOS.md`). crates.io already has the published `dc_rulekit 0.2.0` package. pub.dev is completely prepared for publication. All baseline criteria for Sprint 0 and Sprint 1 are satisfied.
+The v0.2 implementation at commit `9b8989e` remains functionally stable, internally consistent, and thoroughly tested across Rust and Dart implementations. `main` at `7e6de7f` adds release-tracking and drift-alignment docs only (`RULEKIT_*`, `TODOS.md`, ADR 0001). crates.io already has the published `dc_rulekit 0.2.0` package. pub.dev is completely prepared for publication. All baseline criteria for Sprint 0 and Sprint 1 are satisfied.
