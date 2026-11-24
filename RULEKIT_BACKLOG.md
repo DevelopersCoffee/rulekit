@@ -3,7 +3,7 @@
 **Document Version:** 1.0.0  
 **Current Milestone:** `dc_rulekit` 0.2.0 Release & Stabilization  
 **Repository:** [DevelopersCoffee/rulekit](https://github.com/DevelopersCoffee/rulekit)  
-**Last Updated:** October 16, 2026  
+**Last Updated:** November 25, 2026  
 
 ---
 
@@ -26,6 +26,20 @@
 | **Cruftkit Host-Specific Adapter** | Host Integration | **DEFERRED (Cruftkit Scope)**| Cruftkit repository `packages/rulekit_adapter` | Maintain clean separation from core |
 | **Live Disk & Billing Integrations** | Domain Logic | **OUT OF SCOPE** | Core remains business-agnostic | Product-level implementation |
 | **Domain-Specific UI / Rule Editors** | UI / Presentation | **OUT OF SCOPE** | Core remains headless | Implement in consuming applications |
+| **Doc drift — ADR 0001 + baseline (PR #3)** | Documentation | **MERGED** | Merge `7e6de7f` ([PR #3](https://github.com/DevelopersCoffee/rulekit/pull/3)) | None |
+| **Doc drift — main tip inventory (PR #4)** | Documentation | **MERGED** | Merge `9d7ad5b` ([PR #4](https://github.com/DevelopersCoffee/rulekit/pull/4)) | None |
+
+### Status vocabulary
+
+Terms below are used consistently across `RULEKIT_*` and `TODOS.md`:
+
+| Label | Meaning |
+| :--- | :--- |
+| **MERGED** / **COMPLETED** | Landed on `main` |
+| **VERIFIED** / **PASSED** | Recorded evidence (tests, registry smoke, dry-run) |
+| **Pending** | Blocked on an external maintainer action (credentials, downstream repo) |
+| **DEFERRED** | Intentionally future milestone per ADR |
+| **OUT OF SCOPE** | Not planned for rulekit core |
 
 ---
 
