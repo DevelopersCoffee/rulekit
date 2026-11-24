@@ -2,6 +2,8 @@
 
 This file tracks the status of all implementation, release, and deferred tasks for `dc_rulekit`, with concrete verification evidence.
 
+**Status labels** match `RULEKIT_BACKLOG.md`: **COMPLETED** / **VERIFIED** = done with evidence; unchecked `[ ]` = **Pending** (external blocker) or future work; **Deferred** = ADR-excluded scope.
+
 ---
 
 ## 1. Completed Implementation Tasks
@@ -60,17 +62,19 @@ This file tracks the status of all implementation, release, and deferred tasks f
 
 ## 3. Active Release Tasks
 
-### [ ] Publish Dart Package to pub.dev
+### [ ] Publish Dart Package to pub.dev *(Pending — maintainer OAuth)*
 - **Task:** Execute `dart pub publish` in `packages/dc_rulekit`.
-- **Pre-requisite:** Requires interactive login / OAuth token with publishing access for `dc_rulekit` on pub.dev.
+- **Pre-requisite:** Requires interactive login / OAuth token with publishing access for `dc_rulekit` on pub.dev (authorized publisher account).
+- **Agent note:** Cannot be completed in Cloud Agent VMs (no interactive pub.dev OAuth; run locally or in maintainer CI with secret).
 - **Verification:** Confirm package live on `https://pub.dev/packages/dc_rulekit`.
 
-### [ ] Update Downstream Cruftkit Adapter to v0.2
-- **Task:** Upgrade `cruftkit-model-fetch/packages/rulekit_adapter` from `^0.1.0` to `^0.2.0`.
+### [ ] Update Downstream Cruftkit Adapter to v0.2 *(Pending — Cruftkit repo)*
+- **Task:** Upgrade `packages/rulekit_adapter` in the Cruftkit workspace from `dc_rulekit: ^0.1.0` to `^0.2.0`.
 - **Target Files:**
   - `packages/rulekit_adapter/pubspec.yaml`: Bump to `dc_rulekit: ^0.2.0`.
   - `packages/rulekit_adapter/lib/src/bridge.dart`: Update `when` to `conditions`, `then` to `events`, and pass `registry` into `propose(rule, registry)`.
   - `packages/rulekit_adapter/test/adapter_test.dart`: Update test fixtures and expectations.
+- **Agent note:** Cruftkit is a separate repository; migration steps remain documented in `RULEKIT_RELEASE_PLAN.md` until that repo is updated.
 
 ---
 

@@ -17,6 +17,8 @@ Host applications register **condition** and **action** plugins; the core valida
 
 See [docs/ADR/0001-agnostic-core-vs-host-plugins.md](docs/ADR/0001-agnostic-core-vs-host-plugins.md) and [docs/ADR/0002-industry-standard-rule-documents.md](docs/ADR/0002-industry-standard-rule-documents.md).
 
+**Plugin ids:** JSON examples below use a **host namespace** (`my.when.*`, `my.then.*`). Runnable tests and [`dc_rulekit_demo_plugins`](crates/dc_rulekit_demo_plugins) use **`demo.when.*` / `demo.then.*`** — register your own prefix in the host app’s `PluginRegistry`.
+
 ## Rule JSON an LLM can emit (v0.2)
 
 ```json
